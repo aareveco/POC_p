@@ -1,0 +1,83 @@
+Project Description:
+I need to develop a cross-platform application with an overlay interface (similar to Steam's overlay) that provides the following functionalities:
+
+1. App Management & Control:
+The application should allow users to add or remove a finite list of pre-defined applications to/from the overlay.
+Once an app is added to the overlay, I want the ability to send commands or control the app directly from the overlay (if possible). 
+This includes control over apps such as:
+- **TeamViewer**: Launch a session with a specific connection ID.
+- **OBS Studio**: Start streaming to another computer, handling authentication between the two systems without using third-party servers.
+- **Image Software Editor**: Integrate or create an image software editor that allows basic image editing functionalities.
+- **USB Signal Streaming**: Stream USB signals (e.g., peripherals, device signals) from one computer to another over the network.
+
+2. Cross-Platform Compatibility:
+The application needs to be cross-platform (Windows, macOS, Linux). This will be achieved using the **Electron** framework for a modern UI or **Qt** for better performance and native experience.
+
+3. Overlay Interface (App Management & Control):
+- The application will display an overlay with the ability to manage multiple video streams (cameras) and applications (TeamViewer, OBS, etc.)
+- The overlay should support adding/removing apps and enabling direct control (via system commands or APIs) over them.
+- **For TeamViewer**: Control sessions via CLI (e.g., `teamviewer.exe -i <session-id>`).
+- **For OBS Studio**: Use the **OBS WebSocket API** to start streaming and manage settings.
+- **For Image Software Editor**: Integrate libraries such as **PixiJS**, **Fabric.js**, or use Qt's native **QImage** class.
+
+4. USB Signal Streaming:
+- **Electron**: Use **node-usb** or **node-hid** for interacting with USB devices.
+- **Qt**: Use **libusb** for USB interaction.
+- For streaming over the network, use **WebRTC** or **WebSockets**.
+
+5. Real-Time Interaction:
+For all app control and streaming features, low-latency communication is essential. This will be addressed through efficient network protocols:
+- **WebRTC** for real-time streaming (if applicable).
+- **WebSockets** for fast, bidirectional communication between the overlay app and controlled apps.
+
+6. Video Management:
+- If the project includes video stream management, use **WebRTC** or similar technologies to ensure smooth video feed handling.
+- Integrate video management capabilities for cameras (e.g., 3D, Zone1, Zone2, and other inputs).
+- Support for 2D image capture and processing alongside video streams.
+
+7. User Authentication & Management:
+- Implement user roles (admin, user) for managing access and privileges over the overlay and app control functionalities.
+- **Mobile/Web**: Use secure authentication methods (OAuth, JWT) for app access, especially for managing settings or controlling external apps.
+
+8. Development Roadmap:
+1. **Research & Planning**:
+   - Define the exact functionalities for app control (e.g., parameters for TeamViewer, OBS).
+   - Determine the USB signal protocol and streaming requirements.
+   - Decide whether to build the image editor from scratch or integrate existing solutions.
+
+2. **Initial Setup**:
+   - Choose between **Electron** and **Qt** based on your team's expertise and the need for performance.
+   - Set up the project structure and dependencies (e.g., WebSocket libraries, USB libraries).
+
+3. **Develop Overlay Interface**:
+   - Implement the overlay UI with transparent windows and custom controls for adding/removing apps.
+   - Ensure the overlay stays on top of other applications.
+
+4. **Integrate App Control**:
+   - Implement app control features for TeamViewer, OBS Studio, and the image editor.
+   - Test external app control functionality using system commands and APIs.
+
+5. **USB Signal Streaming**:
+   - Implement USB interaction and ensure reliable data capture and streaming between computers.
+   - Set up a network protocol for transmitting USB signals over the network.
+
+6. **Real-Time Interaction**:
+   - Implement **WebRTC** or **WebSockets** to ensure low-latency real-time communication for streaming and app control.
+
+7. **Testing & Deployment**:
+   - Test the application on all three platforms (Windows, macOS, Linux).
+   - Conduct performance testing, especially for USB streaming and overlay functionality.
+
+9. **Cost Analysis**:
+   - **Development Time**: Estimated at 6-8 months with a dedicated development team.
+     - 3 senior developers, 10 hours per week each.
+     - **Value per hour**: 1.5 UF (Chilean unit of account).
+     - **Total monthly cost**: 180 UF, **Total (IVA included)**: 214.2 UF.
+     - **Total Development Cost**: 1285.2 UF - 1713.6 UF.
+   - **Infrastructure Costs**:
+     - Estimated monthly infrastructure cost for 30 concurrent users and 300 registered users.
+     - **Cost (on-demand)**: 450 USD/month, **Cost (saving plan)**: 320 USD/month.
+     - Additional costs for licenses (e.g., TeamViewer, OBS Studio).
+
+10. **Ongoing Maintenance & Updates**:
+   - Continuous support and maintenance post-launch, ensuring server reliability, updates, and addressing security vulnerabilities.
