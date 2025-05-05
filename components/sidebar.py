@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QPushButton
 from PySide6.QtCore import Qt, Signal
-from components.profile.py import create_profile_button, ProfileDialog
+from components.profile import create_profile_button, ProfileDialog
 from components.app_menu import AppMenu
 from components.remote_menu import RemoteMenu
 

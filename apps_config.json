@@ -1,8 +1,8 @@
 {
-    "TeamViewer_12323": {
+    "TeamViewer_hgvhg": {
         "type": "TeamViewer",
         "config": {
-            "connection_id": "12323"
+            "connection_id": "hgvhg"
         },
         "status": "inactive"
     }

@@ -18,6 +18,8 @@ try:
     from Quartz import AXIsProcessTrusted
 except ImportError:
     AXIsProcessTrusted = None
+from components.sidebar import Sidebar
+from components.app_nav_button import AppNavButton
 
 class AppWindow(QFrame):
     closeRequested = Signal(str)
@@ -225,34 +227,21 @@ class AppContainer(QWidget):
 class AddAppDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.initUI()
-        
-    def initUI(self):
         self.setWindowTitle("Add Application")
-        layout = QFormLayout()
-        
-        # App type selection
+        layout = QFormLayout(self)
         self.app_type = QComboBox()
         self.app_type.addItems(["TeamViewer", "OBS Studio", "Image Editor"])
         layout.addRow("Application Type:", self.app_type)
-        
-        # Connection ID for TeamViewer
         self.connection_id = QLineEdit()
         layout.addRow("Connection ID:", self.connection_id)
-        
-        # Buttons
         self.add_button = QPushButton("Add")
         self.add_button.clicked.connect(self.accept)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
-        
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.cancel_button)
         layout.addRow("", button_layout)
-        
-        self.setLayout(layout)
-        
     def get_app_data(self):
         return {
             'type': self.app_type.currentText(),
@@ -576,16 +565,57 @@ class OverlayWindow(QMainWindow):
         if dialog.exec():
             app_data = dialog.get_app_data()
             app_name = f"{app_data['type']}_{app_data['connection_id']}"
-            success = self.app_manager.add_app(
-                app_name=app_name,
-                app_type=app_data['type'],
-                config={'connection_id': app_data['connection_id']}
-            )
-            if success:
-                self.refresh_navbar()
+            print(f"Attempting to add app: {app_name}")
+            if app_name not in self.app_manager.apps:
+                # Placeholder icon
+                icon = QIcon()
+                def launch_app(name):
+                    data = self.app_manager.apps.get(name)
+                    if not data:
+                        return
+                    try:
+                        if data['type'] == 'TeamViewer':
+                            teamviewer_path = self.find_teamviewer_path()
+                            if not teamviewer_path:
+                                QMessageBox.warning(self, "Error", "TeamViewer is not installed or not found.")
+                                return
+                            subprocess.Popen([teamviewer_path, '--id', data['connection_id']])
+                        elif data['type'] == 'OBS Studio':
+                            obs_path = self.find_obs_path()
+                            if not obs_path:
+                                QMessageBox.warning(self, "Error", "OBS Studio is not installed or not found.")
+                                return
+                            # Add OBS launch logic here
+                            QMessageBox.information(self, "OBS", "OBS Studio launch (mock)")
+                    except Exception as e:
+                        QMessageBox.warning(self, "Error", f"Failed to launch {data['type']}: {str(e)}")
+                def delete_app(name):
+                    if name in self.app_manager.apps:
+                        app_btn.setParent(None)
+                        self.app_manager.remove_app(name)
+                        self.refresh_navbar()
+                        print(f"Deleted app: {name}")
+                def select_app(name):
+                    print(f"Selected app: {name}")
+                app_btn = AppNavButton(app_name, icon, delete_app, select_app, launch_app)
+                # Remove any existing stretch at the end
+                count = self.app_nav_layout.count()
+                if count > 0 and self.app_nav_layout.itemAt(count-1).spacerItem():
+                    self.app_nav_layout.takeAt(count-1)
+                self.app_nav_layout.addWidget(app_btn)
+                self.app_nav_layout.addStretch()
+                self.app_nav_layout.update()
+                self.app_nav_layout.repaint()
+                print(f"Added app widget: {app_name}")
+                self.app_manager.add_app(
+                    app_name=app_name,
+                    app_type=data['type'],
+                    config={'connection_id': data['connection_id']}
+                )
                 QMessageBox.information(self, "Success", "Application added successfully!")
             else:
-                QMessageBox.warning(self, "Error", "Failed to add application!")
+                print(f"App already exists: {app_name}")
+                QMessageBox.warning(self, "Error", "App already exists!")
 
     def start_global_hotkey_listener(self):
         def on_press(key):
@@ -635,16 +665,154 @@ class OverlayWindow(QMainWindow):
         self.menu1_btn.setChecked(idx == 0)
         self.menu2_btn.setChecked(idx == 1)
 
+class SignInDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Sign In")
+        self.setFixedSize(300, 180)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("<b>Sign in to your account</b>"))
+        self.user_input = QLineEdit()
+        self.user_input.setPlaceholderText("Username")
+        layout.addWidget(self.user_input)
+        self.pass_input = QLineEdit()
+        self.pass_input.setPlaceholderText("Password")
+        self.pass_input.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.pass_input)
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red;")
+        layout.addWidget(self.error_label)
+        btn = QPushButton("Sign In")
+        btn.clicked.connect(self.try_login)
+        layout.addWidget(btn)
+        self.success = False
+    def try_login(self):
+        if self.user_input.text() == "admin" and self.pass_input.text() == "admin":
+            self.success = True
+            self.accept()
+        else:
+            self.error_label.setText("Invalid username or password.")
+
 def main():
     app = QApplication(sys.argv)
-    
-    # Set application style
-    app.setStyle('Fusion')
-    
-    # Create and show the overlay window
-    overlay = OverlayWindow()
-    overlay.show()
-    
+    # Show sign-in dialog first
+    signin = SignInDialog()
+    if not signin.exec():
+        sys.exit(0)
+    # If login successful, show main app
+    main_window = QMainWindow()
+    main_window.setWindowTitle("Overlay App")
+    # App navigation container for Sidebar
+    app_nav_container = QWidget()
+    app_nav_layout = QVBoxLayout(app_nav_container)
+    app_nav_layout.setContentsMargins(0, 0, 0, 0)
+    app_nav_layout.setSpacing(0)
+    sidebar = Sidebar(app_nav_container, app_nav_layout)
+
+    # App management state
+    apps = {}
+    def handle_add_app():
+        dialog = AddAppDialog(main_window)
+        if dialog.exec():
+            app_data = dialog.get_app_data()
+            app_name = f"{app_data['type']}_{app_data['connection_id']}"
+            print(f"Attempting to add app: {app_name}")
+            if app_name not in apps:
+                # Placeholder icon
+                icon = QIcon()
+                def launch_app(name):
+                    data = apps.get(name)
+                    if not data:
+                        return
+                    try:
+                        if data['type'] == 'TeamViewer':
+                            teamviewer_path = find_teamviewer_path()
+                            if not teamviewer_path:
+                                QMessageBox.warning(main_window, "Error", "TeamViewer is not installed or not found.")
+                                return
+                            subprocess.Popen([teamviewer_path, '--id', data['connection_id']])
+                        elif data['type'] == 'OBS Studio':
+                            obs_path = find_obs_path()
+                            if not obs_path:
+                                QMessageBox.warning(main_window, "Error", "OBS Studio is not installed or not found.")
+                                return
+                            # Add OBS launch logic here
+                            QMessageBox.information(main_window, "OBS", "OBS Studio launch (mock)")
+                    except Exception as e:
+                        QMessageBox.warning(main_window, "Error", f"Failed to launch {data['type']}: {str(e)}")
+                def delete_app(name):
+                    if name in apps:
+                        app_btn.setParent(None)
+                        del apps[name]
+                        app_nav_container.adjustSize()
+                        app_nav_container.update()
+                        app_nav_container.repaint()
+                        print(f"Deleted app: {name}")
+                def select_app(name):
+                    print(f"Selected app: {name}")
+                app_btn = AppNavButton(app_name, icon, delete_app, select_app, launch_app)
+                # Remove any existing stretch at the end
+                count = app_nav_layout.count()
+                if count > 0 and app_nav_layout.itemAt(count-1).spacerItem():
+                    app_nav_layout.takeAt(count-1)
+                app_nav_layout.addWidget(app_btn)
+                app_nav_layout.addStretch()
+                app_nav_container.adjustSize()
+                app_nav_container.update()
+                app_nav_container.repaint()
+                print(f"Added app widget: {app_name}")
+                apps[app_name] = app_data
+                QMessageBox.information(main_window, "Success", "Application added successfully!")
+            else:
+                print(f"App already exists: {app_name}")
+                QMessageBox.warning(main_window, "Error", "App already exists!")
+    sidebar.add_app_requested.connect(handle_add_app)
+
+    def find_teamviewer_path():
+        if sys.platform == 'darwin':  # macOS
+            paths = [
+                '/Applications/TeamViewer.app/Contents/MacOS/TeamViewer',
+                os.path.expanduser('~/Applications/TeamViewer.app/Contents/MacOS/TeamViewer')
+            ]
+        elif sys.platform == 'win32':  # Windows
+            paths = [
+                'C:\\Program Files\\TeamViewer\\TeamViewer.exe',
+                'C:\\Program Files (x86)\\TeamViewer\\TeamViewer.exe'
+            ]
+        else:  # Linux
+            paths = [
+                '/usr/bin/teamviewer',
+                '/opt/teamviewer/teamviewer'
+            ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return None
+
+    def find_obs_path():
+        if sys.platform == 'darwin':  # macOS
+            paths = [
+                '/Applications/OBS.app/Contents/MacOS/obs',
+                os.path.expanduser('~/Applications/OBS.app/Contents/MacOS/obs')
+            ]
+        elif sys.platform == 'win32':  # Windows
+            paths = [
+                'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe',
+                'C:\\Program Files (x86)\\obs-studio\\bin\\32bit\\obs32.exe'
+            ]
+        else:  # Linux
+            paths = [
+                '/usr/bin/obs',
+                '/usr/local/bin/obs'
+            ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return None
+
+    main_window.setCentralWidget(sidebar)
+    main_window.setGeometry(100, 100, 220, 600)
+    main_window.show()
     sys.exit(app.exec())
 
 if __name__ == '__main__':
